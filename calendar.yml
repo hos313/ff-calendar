@@ -1,0 +1,44 @@
+name: Economic Calendar
+
+on:
+  workflow_dispatch:          # توسط Worker کلودفلر (cron دقیق) و دکمه‌ی «Run workflow» اجرا می‌شود
+
+concurrency:
+  group: calendar
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      # کش ترجمه‌ها (فایل tmap.json) بین اجراها
+      - name: Restore translation cache
+        uses: actions/cache@v4
+        with:
+          path: tmap.json
+          key: tmap-${{ github.run_id }}
+          restore-keys: tmap-
+
+      - name: Run bot
+        run: node bot.mjs
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
+          TZ_MODE: ${{ vars.TZ_MODE || 'site' }}
+          SITE_TZ: ${{ vars.SITE_TZ || 'Asia/Dubai' }}
+          NUM_FA: ${{ vars.NUM_FA || '1' }}
+          WAIT_FOR_BOUNDARY: ${{ vars.WAIT_FOR_BOUNDARY || '0' }}
